@@ -7,25 +7,18 @@ require "finrb"
 class MonteCarloSimulator
   attr_reader :slicing_data, :params, :iterations
 
-  def initialize(slicing_data, iterations: 10_000)
+  def initialize(slicing_data, iterations: 1_000)
     @slicing_data = slicing_data
     @params = slicing_data.effective_parameters
     @iterations = iterations
     @results = Rails.cache.fetch("monte_carlo.slicing_data.#{slicing_data.id}")
   end
 
-  # Run the simulation with parallel processing and vectorized operations
+  # Run the simulation sequentially (safe for SQLite + single-process servers)
   def run!
     return @results if @results.present?
 
-    # Determine optimal thread count
-    thread_count = Parallel.processor_count - 1
-
-    # Run iterations in parallel
-    results_array = Parallel.map(1..iterations, in_processes: thread_count) do
-      # Each thread needs its own random seed
-      # Thread.current[:random] = Random.new
-
+    results_array = (1..iterations).map do
       sampled_params = sample_parameters
       cost = calculate_cost_per_part(sampled_params)
       financial_metrics = calculate_financial_metrics(sampled_params, cost)
@@ -377,54 +370,26 @@ class MonteCarloSimulator
   # ========== PARAMETER SAMPLING ==========
 
   def sample_parameters
+    cost_vol = params.cost_volatility.to_f.nonzero? || 0.1
+    rev_vol  = params.revenue_volatility.to_f.nonzero? || 0.1
+    powder_price  = slicing_data.material.raw_material_price.to_f.nonzero? || 100.0
+    elec_rate     = params.electricity_rate.to_f.nonzero? || 2.5
+    labor_rate    = params.labor_rate.to_f.nonzero? || 150.0
+    price_per_part = params.price_per_part.to_f.nonzero? || 1.0
+    discount_rate  = params.discount_rate.to_f.nonzero? || 0.1
+    recycling_eff  = slicing_data.material.recycling_efficiency.to_f.clamp(0.5, 0.95)
+    machine_util   = params.machine_utilization_rate.to_f.nonzero? || 0.8
+
     {
-      # Material costs - normal distribution with volatility
-      powder_price: sample_normal(
-        slicing_data.material.raw_material_price,
-        slicing_data.material.raw_material_price * (params.cost_volatility || 0.1)
-      ),
-
-      # Energy costs - normal distribution
-      electricity_rate: sample_normal(
-        params.electricity_rate,
-        params.electricity_rate * (params.cost_volatility || 0.1)
-      ),
-
-      # Labor costs - normal distribution
-      labor_rate: sample_normal(
-        params.labor_rate,
-        params.labor_rate * (params.cost_volatility || 0.05)
-      ),
-
-      # Build time - normal distribution (± 15%)
+      powder_price:         sample_normal(powder_price, powder_price * cost_vol),
+      electricity_rate:     sample_normal(elec_rate, elec_rate * cost_vol),
+      labor_rate:           sample_normal(labor_rate, labor_rate * 0.05),
       build_time_multiplier: sample_normal(1.0, 0.15),
-
-      # Material utilization - uniform between 0.5 and material's recycling efficiency
-      material_utilization: sample_uniform(0.5, [ slicing_data.material.recycling_efficiency, 0.95 ].min),
-
-      # Recycling efficiency - uniform around material's base value
-      recycling_efficiency: sample_uniform(
-        [ slicing_data.material.recycling_efficiency - 0.05, 0.5 ].max,
-        [ slicing_data.material.recycling_efficiency + 0.05, 0.95 ].min
-      ),
-
-      # Revenue - normal distribution with volatility
-      price_per_part: sample_normal(
-        params.price_per_part,
-        params.price_per_part * (params.revenue_volatility || 0.1)
-      ),
-
-      # Discount rate - normal distribution (± 2%)
-      discount_rate: sample_normal(
-        params.discount_rate,
-        0.02
-      ).clamp(0.01, 0.30),
-
-      # Machine utilization - normal distribution
-      machine_utilization: sample_normal(
-        params.machine_utilization_rate,
-        0.05
-      ).clamp(0.5, 0.95)
+      material_utilization: sample_uniform(0.5, [ recycling_eff, 0.95 ].min),
+      recycling_efficiency: sample_uniform([ recycling_eff - 0.05, 0.5 ].max, [ recycling_eff + 0.05, 0.95 ].min),
+      price_per_part:       sample_normal(price_per_part, price_per_part * rev_vol),
+      discount_rate:        sample_normal(discount_rate, 0.02).clamp(0.01, 0.30),
+      machine_utilization:  sample_normal(machine_util, 0.05).clamp(0.5, 0.95)
     }
   end
 
@@ -471,35 +436,39 @@ class MonteCarloSimulator
     recycled_powder = unused_powder * sampled[:recycling_efficiency]
     non_recycled_powder = total_powder_mass - part_mass - recycled_powder
 
-    waste_cost = non_recycled_powder * params.waste_disposal_cost_per_kg
-    gas_cost = build_time * params.gas_consumption_per_hour * params.inert_gas_price
+    waste_cost = non_recycled_powder * params.waste_disposal_cost_per_kg.to_f
+    gas_cost = build_time * params.gas_consumption_per_hour.to_f * params.inert_gas_price.to_f
     consumables_cost = powder_cost + gas_cost + waste_cost
 
     # Energy cost
-    energy_consumption = build_time * params.machine_power_consumption
+    energy_consumption = build_time * params.machine_power_consumption.to_f
     energy_cost = energy_consumption * sampled[:electricity_rate]
 
     # Equipment cost
-    machine_hourly_rate = (slicing_data.machine.purchase_price / slicing_data.machine.lifespan_years +
-                          slicing_data.machine.annual_maintenance_cost) / params.annual_operating_hours
+    annual_op_hours = params.annual_operating_hours.to_f.nonzero? || 2000.0
+    machine_purchase = slicing_data.machine.purchase_price.to_f
+    machine_lifespan = slicing_data.machine.lifespan_years.to_f.nonzero? || 7.0
+    machine_maintenance = slicing_data.machine.annual_maintenance_cost.to_f
+    machine_hourly_rate = (machine_purchase / machine_lifespan + machine_maintenance) / annual_op_hours
     equipment_cost = machine_hourly_rate * build_time
 
     # Labor cost
-    operator_time = build_time + (params.post_processing_time_per_part * slicing_data.annual_parts_produced)
+    operator_time = build_time + (params.post_processing_time_per_part.to_f * slicing_data.annual_parts_produced)
     labor_cost = operator_time * sampled[:labor_rate]
-    setup_cost = params.setup_time_hours * sampled[:labor_rate]
+    setup_cost = params.setup_time_hours.to_f * sampled[:labor_rate]
     total_labor = labor_cost + setup_cost
 
     # Facility cost
-    facility_cost_per_hour = (params.annual_rent + params.annual_utilities + params.annual_admin) / params.annual_operating_hours
+    facility_cost_per_hour = (params.annual_rent.to_f + params.annual_utilities.to_f + params.annual_admin.to_f) / annual_op_hours
     facility_cost = facility_cost_per_hour * build_time
 
     # Digital cost
-    digital_cost_per_hour = (params.annual_software_cost + params.annual_hpc_cost) / params.annual_operating_hours
+    digital_cost_per_hour = (params.annual_software_cost.to_f + params.annual_hpc_cost.to_f) / annual_op_hours
     digital_cost = digital_cost_per_hour * build_time
 
     # Maintenance cost
-    maintenance_cost = (params.total_annual_maintenance / params.annual_operating_hours) * build_time
+    total_maint = params.respond_to?(:total_annual_maintenance) ? params.total_annual_maintenance.to_f : 0.0
+    maintenance_cost = (total_maint / annual_op_hours) * build_time
 
     # Total cost per build
     total_cost_per_build = consumables_cost + energy_cost + equipment_cost +
@@ -519,7 +488,7 @@ class MonteCarloSimulator
 
     # Build cash flow array: [initial_investment (negative), then annual profits]
     cash_flows = [ -effective_upfront_investment ]
-    params.analysis_horizon_years.times do
+    (params.analysis_horizon_years.to_i.nonzero? || 5).times do
       cash_flows << annual_profit
     end
 
