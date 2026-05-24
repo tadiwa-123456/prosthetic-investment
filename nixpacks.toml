@@ -1,0 +1,15 @@
+[phases.setup]
+nixPkgs = ["ruby_3_3", "nodejs", "libyaml", "libpq", "postgresql"]
+
+[phases.install]
+cmds = ["bundle install"]
+
+[phases.build]
+cmds = [
+  "bundle exec rails tailwindcss:build",
+  "bundle exec rails assets:precompile",
+  "bundle exec rails db:migrate"
+]
+
+[start]
+cmd = "bundle exec rails server -p $PORT -e production"
