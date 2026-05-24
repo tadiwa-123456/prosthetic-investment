@@ -81,4 +81,5 @@ Rails.application.configure do
 
   config.hosts << /.*\.onrender\.com/
   config.hosts << /.*\.trycloudflare\.com/
+  config.hosts << /.*/ # allow any host (demo app)
 end
