@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["ruby_3_3", "nodejs", "libyaml", "libpq", "postgresql"]
+nixPkgs = ["ruby_3_2", "libyaml", "libffi"]
 
 [phases.install]
 cmds = ["bundle install"]
@@ -8,7 +8,8 @@ cmds = ["bundle install"]
 cmds = [
   "bundle exec rails tailwindcss:build",
   "bundle exec rails assets:precompile",
-  "bundle exec rails db:migrate"
+  "bundle exec rails db:migrate",
+  "bundle exec rails db:seed"
 ]
 
 [start]
