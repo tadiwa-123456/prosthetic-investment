@@ -85,4 +85,4 @@ gem "numo-narray", "~> 0.9.2"
 
 gem "finance_rb", "~> 1.0"
 
-gem "money-rails", "~> 2.0"
+gem "money-rails", "~> 3.0"
