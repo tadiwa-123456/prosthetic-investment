@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  name: MyString
+  code: MyString
+  density: 9.99
+  raw_material_price: 9.99
+  embodied_carbon: 9.99
+  recycling_efficiency: 9.99
+
+two:
+  name: MyString
+  code: MyString
+  density: 9.99
+  raw_material_price: 9.99
+  embodied_carbon: 9.99
+  recycling_efficiency: 9.99

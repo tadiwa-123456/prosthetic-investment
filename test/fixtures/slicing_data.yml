@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  part_name: MyString
+  part_volume: 9.99
+  part_height: 9.99
+  surface_area: 9.99
+  support_volume: 9.99
+  layer_thickness: 9.99
+  csv_file: MyString
+
+two:
+  part_name: MyString
+  part_volume: 9.99
+  part_height: 9.99
+  surface_area: 9.99
+  support_volume: 9.99
+  layer_thickness: 9.99
+  csv_file: MyString

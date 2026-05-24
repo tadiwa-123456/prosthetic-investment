@@ -1,0 +1,16 @@
+services:
+  web:
+    build: .
+    image: cost_tinoe
+    container_name: cost_tinoe
+    ports:
+      - "3000:80"
+    environment:
+      RAILS_ENV: development
+      SECRET_KEY_BASE: "placeholder_dev_key_change_in_production"
+    volumes:
+      - rails_storage:/rails/storage
+    restart: unless-stopped
+
+volumes:
+  rails_storage:

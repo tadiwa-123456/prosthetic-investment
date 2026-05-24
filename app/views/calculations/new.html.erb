@@ -1,0 +1,813 @@
+<div class="space-y-8 pb-8">
+  <!-- Header Section -->
+  <div class="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-900 via-blue-900 to-cyan-900 p-6 text-white shadow-xl">
+    <p class="text-xs uppercase tracking-[0.2em] text-cyan-200">Conference Mode</p>
+    <h2 class="mt-2 text-3xl font-black">Prosthetics Investment Feasibility Studio</h2>
+    <p class="mt-2 text-slate-200">
+      Configure production, pricing, and investment assumptions for prosthetics in a studio-style workflow.
+    </p>
+  </div>
+
+  <%= form_with model: @slicing_data, url: calculations_path, class: "space-y-6", data: {turbo:false} do |f| %>
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+    <!-- Machine Selection -->
+    <div class="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-6 shadow-sm">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-slate-900">
+          Stage A: Production Platform
+        </h3>
+        <button
+          type="button"
+          onclick="document.getElementById('stage-a-section').classList.toggle('hidden')"
+          class="text-sm text-blue-600 hover:text-blue-800"
+        >
+          Toggle Line Items
+        </button>
+      </div>
+
+      <div id="stage-a-section">
+
+      <% if f.object.errors[:machine].any? %>
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800"><%= f.object.errors[:machine].first %></p>
+        </div>
+      <% end %>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <% @machines.each do |machine| %>
+          <label class="cursor-pointer">
+            <input
+              type="radio"
+              name="slicing_datum[machine_id]"
+              value="<%= machine.id %>"
+              class="peer hidden"
+              required
+            >
+            <div
+              class="
+                border-2 border-sky-200 rounded-xl p-4 peer-checked:border-sky-600
+                peer-checked:bg-sky-100 hover:border-sky-400 transition-colors
+              "
+            >
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="font-semibold text-gray-900"><%= machine.name %></h4>
+                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                  <%= machine.model_number %>
+                </span>
+              </div>
+
+              <dl class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <dt class="text-gray-500">Build Volume:</dt>
+                  <dd class="font-medium text-gray-900">
+                    <%= machine.build_volume_x.to_i %>×<%= machine.build_volume_y.to_i %><%= machine.build_volume_z.to_i %>
+                    mm
+                  </dd>
+                </div>
+
+                <div class="flex justify-between">
+                  <dt class="text-gray-500">Laser Power:</dt>
+                  <dd class="font-medium text-gray-900"><%= machine.laser_power.to_i %>
+                    W</dd>
+                </div>
+
+                <div class="flex justify-between">
+                  <dt class="text-gray-500">Purchase Price:</dt>
+                  <dd class="font-medium text-gray-900">$
+                    <%= number_to_human(machine.purchase_price, precision: 2) %></dd>
+                </div>
+              </dl>
+            </div>
+          </label>
+        <% end %>
+      </div>
+      </div>
+    </div>
+    <!-- Material Selection -->
+    <div class="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-6 shadow-sm">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-slate-900">
+          Stage B: Material System
+        </h3>
+        <button
+          type="button"
+          onclick="document.getElementById('stage-b-section').classList.toggle('hidden')"
+          class="text-sm text-blue-600 hover:text-blue-800"
+        >
+          Toggle Line Items
+        </button>
+      </div>
+
+      <div id="stage-b-section">
+
+      <% if f.object.errors[:material].any? %>
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-800"><%= f.object.errors[:material].first %></p>
+        </div>
+      <% end %>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <% @materials.each do |material| %>
+          <label class="cursor-pointer">
+            <input
+              type="radio"
+              name="slicing_datum[material_id]"
+              value="<%= material.id %>"
+              class="peer hidden"
+              required
+            >
+            <div
+              class="
+                border-2 border-indigo-200 rounded-xl p-4 peer-checked:border-indigo-600
+                peer-checked:bg-indigo-100 hover:border-indigo-400 transition-colors
+              "
+            >
+              <div class="mb-3">
+                <h4 class="font-semibold text-gray-900"><%= material.name %></h4>
+                <p class="text-xs text-gray-500 mt-1"><%= material.code %></p>
+              </div>
+
+              <dl class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <dt class="text-gray-500">Density:</dt>
+                  <dd class="font-medium text-gray-900"><%= material.density %>
+                    g/cm³</dd>
+                </div>
+
+                <div class="flex justify-between">
+                  <dt class="text-gray-500">Price:</dt>
+                  <dd class="font-medium text-gray-900">$
+                    <%= material.raw_material_price.to_i %>/kg</dd>
+                </div>
+
+                <div class="flex justify-between">
+                  <dt class="text-gray-500">Recycling:</dt>
+                  <dd class="font-medium text-gray-900"><%= (material.recycling_efficiency * 100).to_i %>%</dd>
+                </div>
+
+                <div class="flex justify-between">
+                  <dt class="text-gray-500">Carbon:</dt>
+                  <dd class="font-medium text-gray-900"><%= material.embodied_carbon %>
+                    kg CO₂</dd>
+                </div>
+              </dl>
+            </div>
+          </label>
+        <% end %>
+      </div>
+      </div>
+    </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-12">
+      <div class="xl:col-span-8">
+        <div class="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-6 shadow-sm">
+          <div class="mb-5 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-slate-900">Stage C: Part Definition Canvas</h3>
+            <button
+              type="button"
+              onclick="document.getElementById('stage-c-section').classList.toggle('hidden')"
+              class="text-sm text-blue-600 hover:text-blue-800"
+            >
+              Toggle Line Items
+            </button>
+          </div>
+
+          <div id="stage-c-section">
+
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div class="rounded-xl border border-amber-200 bg-white p-4 md:col-span-2">
+              <%= f.label :part_name,
+                      "Part Name",
+                      class: "mb-2 block text-sm font-medium text-gray-700" %>
+              <%= f.text_field :part_name,
+                           class:
+                             "w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-amber-500 focus:ring-2 focus:ring-amber-500",
+                           placeholder: "e.g., Bracket-001" %>
+              <% if f.object.errors[:part_name].any? %>
+                <p class="mt-1 text-sm text-red-600"><%= f.object.errors[:part_name].first %></p>
+              <% end %>
+            </div>
+
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="rounded-xl border border-amber-200 bg-white p-4">
+              <%= f.label :part_volume,
+                      "Part Volume (mm³)",
+                      class: "mb-2 block text-sm font-medium text-gray-700" %>
+              <%= f.number_field :part_volume,
+                             step: "0.01",
+                             class:
+                               "w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-amber-500 focus:ring-2 focus:ring-amber-500",
+                             placeholder: "e.g., 12500.00" %>
+              <% if f.object.errors[:part_volume].any? %>
+                <p class="mt-1 text-sm text-red-600"><%= f.object.errors[:part_volume].first %></p>
+              <% end %>
+            </div>
+
+            <div class="rounded-xl border border-amber-200 bg-white p-4">
+              <%= f.label :part_height,
+                      "Part Height (mm)",
+                      class: "mb-2 block text-sm font-medium text-gray-700" %>
+              <%= f.number_field :part_height,
+                             step: "0.01",
+                             class:
+                               "w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-amber-500 focus:ring-2 focus:ring-amber-500",
+                             placeholder: "e.g., 45.00" %>
+              <% if f.object.errors[:part_height].any? %>
+                <p class="mt-1 text-sm text-red-600"><%= f.object.errors[:part_height].first %></p>
+              <% end %>
+            </div>
+
+            <div class="rounded-xl border border-amber-200 bg-white p-4">
+              <%= f.label :surface_area,
+                      "Surface Area (mm²)",
+                      class: "mb-2 block text-sm font-medium text-gray-700" %>
+              <%= f.number_field :surface_area,
+                             step: "0.01",
+                             class:
+                               "w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-amber-500 focus:ring-2 focus:ring-amber-500",
+                             placeholder: "e.g., 8500.00" %>
+              <% if f.object.errors[:surface_area].any? %>
+                <p class="mt-1 text-sm text-red-600"><%= f.object.errors[:surface_area].first %></p>
+              <% end %>
+            </div>
+
+            <div class="rounded-xl border border-amber-200 bg-white p-4">
+              <%= f.label :support_volume,
+                      "Support Volume (mm³)",
+                      class: "mb-2 block text-sm font-medium text-gray-700" %>
+              <%= f.number_field :support_volume,
+                             step: "0.01",
+                             value: 0,
+                             class:
+                               "w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-amber-500 focus:ring-2 focus:ring-amber-500",
+                             placeholder: "e.g., 1500.00" %>
+              <% if f.object.errors[:support_volume].any? %>
+                <p class="mt-1 text-sm text-red-600"><%= f.object.errors[:support_volume].first %></p>
+              <% end %>
+            </div>
+
+            <div class="rounded-xl border border-amber-200 bg-white p-4 md:col-span-2">
+              <%= f.label :layer_thickness,
+                      "Layer Thickness (mm)",
+                      class: "mb-2 block text-sm font-medium text-gray-700" %>
+              <%= f.number_field :layer_thickness,
+                             step: "0.001",
+                             value: 0.03,
+                             class:
+                               "w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-amber-500 focus:ring-2 focus:ring-amber-500",
+                             placeholder: "e.g., 0.03" %>
+              <% if f.object.errors[:layer_thickness].any? %>
+                <p class="mt-1 text-sm text-red-600"><%= f.object.errors[:layer_thickness].first %></p>
+              <% end %>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="xl:col-span-4">
+        <div class="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-indigo-50 p-6 shadow-sm">
+          <div class="mb-5 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-slate-900">Stage D: Throughput Plan</h3>
+            <button
+              type="button"
+              onclick="document.getElementById('stage-d-section').classList.toggle('hidden')"
+              class="text-sm text-blue-600 hover:text-blue-800"
+            >
+              Toggle Line Items
+            </button>
+          </div>
+
+          <div id="stage-d-section">
+
+          <div class="grid grid-cols-1 gap-4">
+
+            <div class="rounded-xl border border-violet-200 bg-white p-4">
+              <%= f.label :total_parts_produced,
+                      "Total Parts Produced",
+                      class: "mb-2 block text-sm font-medium text-gray-700" %>
+              <%= f.number_field :total_parts_produced,
+                             value: 1,
+                             min: 1,
+                             class:
+                               "w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-violet-500 focus:ring-2 focus:ring-violet-500" %>
+              <p class="mt-1 text-xs text-gray-500">Enter the total number of parts you plan to produce per year.</p>
+              <% if f.object.errors[:total_parts_produced].any? %>
+                <p class="mt-1 text-sm text-red-600"><%= f.object.errors[:total_parts_produced].first %></p>
+              <% end %>
+            </div>
+
+            <div class="rounded-xl border border-violet-200 bg-white p-4">
+              <%= f.label :material_utilization,
+                      "Material Utilization Efficiency",
+                      class: "mb-2 block text-sm font-medium text-gray-700" %>
+              <%= f.number_field :material_utilization,
+                             step: "0.01",
+                             value: 0.6,
+                             min: 0.1,
+                             max: 1.0,
+                             class:
+                               "w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-violet-500 focus:ring-2 focus:ring-violet-500" %>
+              <p class="mt-1 text-xs text-gray-500">Typical range: 0.5-0.7 (50-70% efficiency)</p>
+              <% if f.object.errors[:material_utilization].any? %>
+                <p class="mt-1 text-sm text-red-600"><%= f.object.errors[:material_utilization].first %></p>
+              <% end %>
+            </div>
+
+
+            <!-- Number of Builds field removed; now using Total Parts Produced only -->
+
+            
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+<!-- Add this section after "Production Configuration" and before "Advanced Parameters" -->
+
+<!-- Cost Line Items Section -->
+<div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-lg font-semibold text-gray-900">
+      Stage E: Cost Drivers Lab (Optional)
+    </h3>
+    <button
+      type="button"
+      onclick="document.getElementById('line-items-section').classList.toggle('hidden')"
+      class="text-sm text-blue-600 hover:text-blue-800"
+    >
+      Toggle Line Items
+    </button>
+  </div>
+
+  <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+    <p class="text-sm text-blue-800">
+      <strong>ℹ️ Default Behavior:</strong> Cost line items will be automatically created based on your parameters. 
+      Expand this section to add custom line items or modify the defaults after creation.
+    </p>
+  </div>
+
+  <div id="line-items-section" class="hidden space-y-5">
+    <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">Driver Board</p>
+      <p class="mt-1 text-sm text-slate-600">Arrange and tune the four core drivers in parallel panels.</p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div class="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-4">
+        <div class="mb-3 flex items-center justify-between">
+          <h4 class="font-semibold text-slate-900">Labor Costs</h4>
+          <button
+            type="button"
+            onclick="addLineItem('labor')"
+            class="rounded-lg bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700 transition hover:bg-blue-200"
+          >
+            + Add Labor
+          </button>
+        </div>
+        <div id="labor-line-items" class="space-y-2">
+          <%= f.fields_for :cost_line_items, f.object.cost_line_items.select { |li| li.category == 'labor' } do |li_form| %>
+            <%= render 'line_item_fields', f: li_form, category: 'labor' %>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4">
+        <div class="mb-3 flex items-center justify-between">
+          <h4 class="font-semibold text-slate-900">Material Costs</h4>
+          <button
+            type="button"
+            onclick="addLineItem('consumables')"
+            class="rounded-lg bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-200"
+          >
+            + Add Material
+          </button>
+        </div>
+        <div id="consumables-line-items" class="space-y-2">
+          <%= f.fields_for :cost_line_items, f.object.cost_line_items.select { |li| li.category == 'consumables' } do |li_form| %>
+            <%= render 'line_item_fields', f: li_form, category: 'consumables' %>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4">
+        <div class="mb-3 flex items-center justify-between">
+          <h4 class="font-semibold text-slate-900">Energy Costs</h4>
+          <button
+            type="button"
+            onclick="addLineItem('energy')"
+            class="rounded-lg bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700 transition hover:bg-amber-200"
+          >
+            + Add Energy
+          </button>
+        </div>
+        <div id="energy-line-items" class="space-y-2">
+          <%= f.fields_for :cost_line_items, f.object.cost_line_items.select { |li| li.category == 'energy' } do |li_form| %>
+            <%= render 'line_item_fields', f: li_form, category: 'energy' %>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-4">
+        <div class="mb-3 flex items-center justify-between">
+          <h4 class="font-semibold text-slate-900">Equipment Costs</h4>
+          <button
+            type="button"
+            onclick="addLineItem('equipment')"
+            class="rounded-lg bg-violet-100 px-3 py-1 text-sm font-semibold text-violet-700 transition hover:bg-violet-200"
+          >
+            + Add Equipment
+          </button>
+        </div>
+        <div id="equipment-line-items" class="space-y-2">
+          <%= f.fields_for :cost_line_items, f.object.cost_line_items.select { |li| li.category == 'equipment' } do |li_form| %>
+            <%= render 'line_item_fields', f: li_form, category: 'equipment' %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let lineItemCounters = {
+    labor: <%= f.object.cost_line_items.select { |li| li.category == 'labor' }.size %>,
+    consumables: <%= f.object.cost_line_items.select { |li| li.category == 'consumables' }.size %>,
+    energy: <%= f.object.cost_line_items.select { |li| li.category == 'energy' }.size %>,
+    equipment: <%= f.object.cost_line_items.select { |li| li.category == 'equipment' }.size %>
+  };
+
+  function addLineItem(category) {
+    const container = document.getElementById(`${category}-line-items`);
+    const newIndex = new Date().getTime(); // Unique index
+    
+    const lineItemHtml = `
+      <div class="grid grid-cols-12 gap-2 p-3 bg-gray-50 rounded border border-gray-200 nested-fields">
+        <input type="hidden" name="slicing_datum[cost_line_items_attributes][${newIndex}][category]" value="${category}" />
+        
+        <div class="col-span-3">
+          <input 
+            type="text" 
+            name="slicing_datum[cost_line_items_attributes][${newIndex}][name]"
+            placeholder="Item name"
+            class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+        
+        <div class="col-span-3">
+          <input 
+            type="text" 
+            name="slicing_datum[cost_line_items_attributes][${newIndex}][description]"
+            placeholder="Description"
+            class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+        
+        <div class="col-span-2">
+          <input 
+            type="number" 
+            step="0.01"
+            name="slicing_datum[cost_line_items_attributes][${newIndex}][unit_cost]"
+            placeholder="Unit cost"
+            class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+        
+        <div class="col-span-1">
+          <input 
+            type="number" 
+            step="0.01"
+            name="slicing_datum[cost_line_items_attributes][${newIndex}][quantity]"
+            placeholder="Qty"
+            value="1"
+            class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+        
+        <div class="col-span-2">
+          <select 
+            name="slicing_datum[cost_line_items_attributes][${newIndex}][unit_type]"
+            class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="hours">Hours</option>
+            <option value="kg">kg</option>
+            <option value="kWh">kWh</option>
+            <option value="m³">m³</option>
+            <option value="per_build">Per Build</option>
+            <option value="per_part">Per Part</option>
+            <option value="units">Units</option>
+          </select>
+        </div>
+        
+        <div class="col-span-1 flex items-center justify-center">
+          <button 
+            type="button" 
+            onclick="this.closest('.nested-fields').remove()"
+            class="text-red-600 hover:text-red-800 text-sm font-bold"
+            title="Remove item"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', lineItemHtml);
+    lineItemCounters[category]++;
+  }
+
+  function removeLineItemField(button) {
+    const field = button.closest('.nested-fields');
+    const destroyCheckbox = field.querySelector('.destroy-checkbox');
+    
+    if (destroyCheckbox) {
+      // Mark for destruction if persisted
+      destroyCheckbox.checked = true;
+      field.style.display = 'none';
+    } else {
+      // Remove if not yet saved
+      field.remove();
+    }
+  }
+</script>
+
+
+
+
+    <!-- Advanced Parameters (Collapsible) -->
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">
+          Stage F: Strategy and Risk Controls
+        </h3>
+        <button
+          type="button"
+          onclick="document.getElementById('advanced-params').classList.toggle('hidden')"
+          class="text-sm text-blue-600 hover:text-blue-800"
+        >
+          Toggle Advanced Settings
+        </button>
+      </div>
+
+      <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-start">
+          <%= f.check_box :use_custom_parameters, class: "mt-1 mr-2" %>
+          <%= f.label :use_custom_parameters, class: "text-sm text-blue-800" do %>
+            <span class="font-medium">Use custom parameters for this analysis</span>
+            <span class="block text-xs mt-1">
+              By default, global parameters are used. Enable this to override
+              with custom values below.
+            </span>
+          <% end %>
+        </div>
+      </div>
+
+      <div id="advanced-params" class="hidden space-y-6">
+        <!-- Economic Parameters -->
+        <div>
+          <h4 class="font-medium text-gray-900 mb-3">Economic Parameters</h4>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                    <%= f.label :electricity_rate,
+                      "Electricity Rate (USD/kWh)",
+                      class: "block text-sm text-gray-700 mb-1" %>
+              <%= f.number_field :electricity_rate,
+                             step: "0.01",
+                             class:
+                               "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+            </div>
+            <div>
+                    <%= f.label :labor_rate,
+                      "Labor Rate (USD/hr)",
+                      class: "block text-sm text-gray-700 mb-1" %>
+              <%= f.number_field :labor_rate,
+                             step: "0.01",
+                             class:
+                               "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+            </div>
+            <div>
+              <%= f.label :annual_operating_hours,
+                      "Annual Operating Hours",
+                      class: "block text-sm text-gray-700 mb-1" %>
+              <%= f.number_field :annual_operating_hours,
+                             step: "1",
+                             class:
+                               "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+            </div>
+          </div>
+        </div>
+        <!-- Gas & Consumables -->
+        <div>
+          <h4 class="font-medium text-gray-900 mb-3">Gas & Consumables</h4>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                    <%= f.label :inert_gas_price,
+                      "Inert Gas Price (USD/m³)",
+                      class: "block text-sm text-gray-700 mb-1" %>
+              <%= f.number_field :inert_gas_price,
+                             step: "0.01",
+                             class:
+                               "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+            </div>
+            <div>
+              <%= f.label :gas_consumption_per_hour,
+                      "Gas Consumption (m³/hr)",
+                      class: "block text-sm text-gray-700 mb-1" %>
+              <%= f.number_field :gas_consumption_per_hour,
+                             step: "0.001",
+                             class:
+                               "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+            </div>
+            <div>
+                    <%= f.label :waste_disposal_cost_per_kg,
+                      "Waste Disposal (USD/kg)",
+                      class: "block text-sm text-gray-700 mb-1" %>
+              <%= f.number_field :waste_disposal_cost_per_kg,
+                             step: "0.01",
+                             class:
+                               "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+            </div>
+          </div>
+        </div>
+        <!-- Build Parameters -->
+        <div>
+          <h4 class="font-medium text-gray-900 mb-3">Build & Process Parameters</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div>
+              <%= f.label :build_time_hours,
+                      "Build Time (hours)",
+                      class: "block text-sm text-gray-700 mb-1" %>
+              <%= f.number_field :build_time_hours,
+                             step: "0.01",
+                             min: "0",
+                             placeholder: "e.g., 5.49",
+                             class:
+                               "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+              <p class="mt-1 text-xs text-gray-500">Use slicing output (e.g. Magics, EOS Print, Netfabb).</p>
+              <% if f.object.errors[:build_time_hours].any? %>
+                <p class="mt-1 text-sm text-red-600"><%= f.object.errors[:build_time_hours].first %></p>
+              <% end %>
+            </div>
+            <div>
+              <%= f.label :machine_power_consumption,
+                      "Machine Power (kW)",
+                      class: "block text-sm text-gray-700 mb-1" %>
+              <%= f.number_field :machine_power_consumption,
+                             step: "0.1",
+                             class:
+                               "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+            </div>
+            <div>
+              <%= f.label :setup_time_hours,
+                      "Setup Time (hours)",
+                      class: "block text-sm text-gray-700 mb-1" %>
+              <%= f.number_field :setup_time_hours,
+                             step: "0.1",
+                             class:
+                               "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+            </div>
+            <div>
+              <%= f.label :post_processing_time_per_part,
+                      "Post-Processing (hrs/part)",
+                      class: "block text-sm text-gray-700 mb-1" %>
+              <%= f.number_field :post_processing_time_per_part,
+                             step: "0.1",
+                             class:
+                               "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+            </div>
+          </div>
+        </div>
+<div>
+  <h4 class="font-medium text-gray-900 mb-3">Financial Analysis Parameters</h4>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div>
+            <%= f.label :price_per_part,
+              "Price per Part (USD)",
+              class: "block text-sm text-gray-700 mb-1" %>
+      <%= f.number_field :price_per_part,
+                     step: "0.01",
+                     class:
+                       "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+      <p class="mt-1 text-xs text-gray-500">Selling price per part</p>
+    </div>
+    
+    <div>
+      <%= f.label :discount_rate,
+              "Discount Rate",
+              class: "block text-sm text-gray-700 mb-1" %>
+      <%= f.number_field :discount_rate,
+                     step: "0.01",
+                     min: "0",
+                     max: "1",
+                     class:
+                       "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+      <p class="mt-1 text-xs text-gray-500">E.g., 0.10 for 10%</p>
+    </div>
+    
+    <div>
+      <%= f.label :analysis_horizon_years,
+              "Analysis Horizon (Years)",
+              class: "block text-sm text-gray-700 mb-1" %>
+      <%= f.number_field :analysis_horizon_years,
+                     step: "1",
+                     min: "1",
+                     class:
+                       "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+      <p class="mt-1 text-xs text-gray-500">Typical: 5-10 years</p>
+    </div>
+    
+    <div>
+            <%= f.label :upfront_investment,
+              "Upfront Investment (USD)",
+              class: "block text-sm text-gray-700 mb-1" %>
+      <%= f.number_field :upfront_investment,
+                     step: "1000",
+                     class:
+                       "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+    </div>
+    
+    <div>
+      <%= f.label :machine_utilization_rate,
+              "Machine Utilization Rate",
+              class: "block text-sm text-gray-700 mb-1" %>
+      <%= f.number_field :machine_utilization_rate,
+                     step: "0.01",
+                     min: "0",
+                     max: "1",
+                     class:
+                       "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+      <p class="mt-1 text-xs text-gray-500">E.g., 0.75 for 75% utilization</p>
+    </div>
+    
+    <div>
+      <%= f.label :minimum_acceptable_return,
+              "Minimum Acceptable Return (%)",
+              class: "block text-sm text-gray-700 mb-1" %>
+      <%= f.number_field :minimum_acceptable_return,
+                     step: "0.1",
+                     class:
+                       "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+      <p class="mt-1 text-xs text-gray-500">Hurdle rate for investment</p>
+    </div>
+  </div>
+</div>
+
+<div>
+  <h4 class="font-medium text-gray-900 mb-3">Monte Carlo Risk Analysis</h4>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div>
+      <%= f.label :cost_volatility,
+              "Cost Volatility",
+              class: "block text-sm text-gray-700 mb-1" %>
+      <%= f.number_field :cost_volatility,
+                     step: "0.01",
+                     min: "0",
+                     max: "1",
+                     class:
+                       "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+      <p class="mt-1 text-xs text-gray-500">E.g., 0.10 for ±10% variance</p>
+    </div>
+    
+    <div>
+      <%= f.label :revenue_volatility,
+              "Revenue Volatility",
+              class: "block text-sm text-gray-700 mb-1" %>
+      <%= f.number_field :revenue_volatility,
+                     step: "0.01",
+                     min: "0",
+                     max: "1",
+                     class:
+                       "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+      <p class="mt-1 text-xs text-gray-500">Price uncertainty factor</p>
+    </div>
+    
+    <div>
+      <%= f.label :monte_carlo_iterations,
+              "Simulation Iterations",
+              class: "block text-sm text-gray-700 mb-1" %>
+      <%= f.number_field :monte_carlo_iterations,
+                     step: "1000",
+                     min: "1000",
+                     class:
+                       "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" %>
+      <p class="mt-1 text-xs text-gray-500">Default: 10,000 iterations</p>
+    </div>
+  </div>
+</div>
+
+      </div>
+   </div>
+    <!-- Submit Button -->
+    <div class="flex justify-end">
+      <%= f.submit "Generate Conference Dashboard",
+               class:
+                 "cursor-pointer rounded-xl bg-gradient-to-r from-cyan-600 to-blue-700 px-8 py-3 font-semibold text-white transition-colors hover:from-cyan-700 hover:to-blue-800 focus:ring-4 focus:ring-cyan-300" %>
+    </div>
+  <% end %>
+</div>

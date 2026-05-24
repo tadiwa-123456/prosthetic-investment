@@ -1,0 +1,489 @@
+<!-- Add this as app/views/calculations/list.html.erb -->
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-900">Saved Analyses</h2>
+        <p class="text-gray-600 mt-1">
+          View, compare, and manage your prosthetics investment analyses
+          <span class="text-sm">(<%= @analyses.count %>
+            total)</span>
+        </p>
+      </div>
+      <%= link_to new_calculation_path,
+      class:
+        "px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold" do %>
+        <svg
+          class="inline-block w-5 h-5 mr-1"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+          />
+        </svg>
+        New Analysis
+      <% end %>
+    </div>
+  </div>
+
+  <% if @analyses.any? %>
+    <%= form_with url: compare_calculations_path, method: :get, class: "space-y-6" do |f| %>
+      <!-- Comparison Controls -->
+      <div
+        class="
+          bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white
+          shadow-lg
+        "
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-bold mb-1">Scenario Comparison</h3>
+            <p class="text-purple-100 text-sm">
+              Select 2 or more analyses to compare performance metrics
+            </p>
+          </div>
+          <button
+            type="submit"
+            class="
+              px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-purple-50
+              transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed
+            "
+            id="compareButton"
+            disabled
+          >
+            Compare Selected
+          </button>
+        </div>
+        <div class="mt-4 text-sm text-purple-100">
+          <span id="selectedCount">0</span>
+          scenarios selected
+        </div>
+      </div>
+      <!-- Filter and Sort Controls -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <!-- Search -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Part name..."
+              class="
+                w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2
+                focus:ring-blue-500 focus:border-blue-500
+              "
+            >
+          </div>
+          <!-- Machine Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Machine</label>
+            <select
+              id="machineFilter"
+              class="
+                w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2
+                focus:ring-blue-500 focus:border-blue-500
+              "
+            >
+              <option value="">All Machines</option>
+              <% @analyses.map(&:machine).uniq.each do |machine| %>
+                <option value="<%= machine.name %>"><%= machine.name %></option>
+              <% end %>
+            </select>
+          </div>
+          <!-- Material Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Material</label>
+            <select
+              id="materialFilter"
+              class="
+                w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2
+                focus:ring-blue-500 focus:border-blue-500
+              "
+            >
+              <option value="">All Materials</option>
+              <% @analyses.map(&:material).uniq.each do |material| %>
+                <option value="<%= material.name %>"><%= material.name %></option>
+              <% end %>
+            </select>
+          </div>
+          <!-- Sort -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+            <select
+              id="sortSelect"
+              class="
+                w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2
+                focus:ring-blue-500 focus:border-blue-500
+              "
+            >
+              <option value="date-desc">Newest First</option>
+              <option value="date-asc">Oldest First</option>
+              <option value="name-asc">Name (A-Z)</option>
+              <option value="name-desc">Name (Z-A)</option>
+              <option value="cost-asc">Cost (Low to High)</option>
+              <option value="cost-desc">Cost (High to Low)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <!-- Analyses Table -->
+      <div
+        class="
+          bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden
+        "
+      >
+        <div class="overflow-x-auto">
+          <table class="w-full" id="analysesTable">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="py-3 px-4 text-left">
+                  <input
+                    type="checkbox"
+                    id="selectAll"
+                    class="
+                      rounded border-gray-300 text-blue-600 focus:ring-blue-500
+                    "
+                  >
+                </th>
+                <th
+                  class="
+                    py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider
+                  "
+                >
+                  Part Name
+                </th>
+                <th
+                  class="
+                    py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider
+                  "
+                >
+                  Machine
+                </th>
+                <th
+                  class="
+                    py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider
+                  "
+                >
+                  Material
+                </th>
+                <th
+                  class="
+                    py-3 px-4 text-right text-xs font-semibold text-gray-600 uppercase
+                    tracking-wider
+                  "
+                >
+                  Cost/Part
+                </th>
+                <th
+                  class="
+                    py-3 px-4 text-right text-xs font-semibold text-gray-600 uppercase
+                    tracking-wider
+                  "
+                >
+                  Build Time
+                </th>
+                <th
+                  class="
+                    py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase
+                    tracking-wider
+                  "
+                >
+                  Created
+                </th>
+                <th
+                  class="
+                    py-3 px-4 text-center text-xs font-semibold text-gray-600 uppercase
+                    tracking-wider
+                  "
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <% @analyses.each do |analysis| %>
+                <% calculator = CostCalculator.new(analysis) %>
+                <tr
+                  class="hover:bg-gray-50 transition-colors analysis-row"
+                  data-name="<%= analysis.part_name.downcase %>"
+                  data-machine="<%= analysis.machine.name %>"
+                  data-material="<%= analysis.material.name %>"
+                  data-cost="<%= calculator.total_cost_per_part %>"
+                  data-date="<%= analysis.created_at.to_i %>"
+                >
+                  <td class="py-4 px-4">
+                    <%= f.check_box :scenario_ids,
+                                {
+                                  multiple: true,
+                                  class:
+                                    "scenario-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500",
+                                },
+                                analysis.id,
+                                nil %>
+                  </td>
+                  <td class="py-4 px-4">
+                    <div class="text-sm font-medium text-gray-900"><%= analysis.part_name %></div>
+                    <div class="text-xs text-gray-500">
+                      <%= number_with_precision(analysis.part_volume / 1000, precision: 1) %>
+                      cm³ ·
+                      <%= analysis.annual_parts_produced %>
+                      parts/year
+                    </div>
+                  </td>
+                  <td class="py-4 px-4">
+                    <div class="text-sm text-gray-900"><%= analysis.machine.name %></div>
+                    <div class="text-xs text-gray-500"><%= analysis.machine.model_number %></div>
+                  </td>
+                  <td class="py-4 px-4">
+                    <div class="text-sm text-gray-900"><%= analysis.material.name %></div>
+                    <div class="text-xs text-gray-500"><%= analysis.material.code %></div>
+                  </td>
+                  <td class="py-4 px-4 text-right">
+                    <div class="text-sm font-semibold text-gray-900">
+                      R
+                      <%= number_with_precision(calculator.total_cost_per_part, precision: 2) %>
+                    </div>
+                  </td>
+                  <td class="py-4 px-4 text-right">
+                    <div class="text-sm text-gray-900">
+                      <%= number_with_precision(analysis.build_time_hours, precision: 2) %>h
+                    </div>
+                  </td>
+                  <td class="py-4 px-4 text-center">
+                    <div class="text-xs text-gray-500">
+                      <%= analysis.created_at.strftime("%Y-%m-%d %H:%M") %>
+                    </div>
+                  </td>
+                  <td class="py-4 px-4">
+                    <div class="flex items-center justify-center gap-2">
+                      <%= link_to calculation_path(analysis),
+                      class: "text-blue-600 hover:text-blue-800 text-sm font-medium" do %>
+                        <svg
+                          class="w-4 h-4 inline"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        </svg>
+                        View
+                      <% end %>
+                      <%= link_to calculation_path(analysis),
+                      data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to delete this analysis?" },
+                      class: "text-red-600 hover:text-red-800 text-sm font-medium" do %>
+                        <svg
+                          class="w-4 h-4 inline"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                        Delete
+                      <% end %>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="noResults" class="hidden py-12 text-center">
+          <svg
+            class="mx-auto h-12 w-12 text-gray-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No matching analyses</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Try adjusting your filters or search terms
+          </p>
+        </div>
+      </div>
+    <% end %>
+    <!-- Summary Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <p class="text-sm text-gray-600 mb-1">Total Analyses</p>
+        <p class="text-3xl font-bold text-gray-900"><%= @analyses.count %></p>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <p class="text-sm text-gray-600 mb-1">Machines Used</p>
+        <p class="text-3xl font-bold text-gray-900">
+          <%= @analyses.map(&:machine_id).uniq.count %>
+        </p>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <p class="text-sm text-gray-600 mb-1">Materials Used</p>
+        <p class="text-3xl font-bold text-gray-900">
+          <%= @analyses.map(&:material_id).uniq.count %>
+        </p>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <p class="text-sm text-gray-600 mb-1">Total Build Time</p>
+        <p class="text-3xl font-bold text-gray-900">
+          <%= number_with_precision(@analyses.sum { |a| a.build_time_hours.to_f }, precision: 1) %>h
+        </p>
+      </div>
+    </div>
+  <% else %>
+    <!-- Empty State -->
+    <div
+      class="
+        bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center
+      "
+    >
+      <svg
+        class="mx-auto h-16 w-16 text-gray-400"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+        />
+      </svg>
+      <h3 class="mt-4 text-lg font-medium text-gray-900">No analyses yet</h3>
+      <p class="mt-2 text-sm text-gray-500">
+        Get started by creating your first prosthetics investment analysis
+      </p>
+      <%= link_to "Create New Analysis",
+      new_calculation_path,
+      class:
+        "mt-6 inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  document.addEventListener('turbo:load', function() {
+    const checkboxes = document.querySelectorAll('.scenario-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    const compareButton = document.getElementById('compareButton');
+    const selectedCount = document.getElementById('selectedCount');
+    const searchInput = document.getElementById('searchInput');
+    const machineFilter = document.getElementById('machineFilter');
+    const materialFilter = document.getElementById('materialFilter');
+    const sortSelect = document.getElementById('sortSelect');
+    const rows = document.querySelectorAll('.analysis-row');
+    const noResults = document.getElementById('noResults');
+    const tableBody = document.querySelector('#analysesTable tbody');
+    
+    function updateCompareButton() {
+      const checkedCount = Array.from(checkboxes).filter(cb => cb.checked && !cb.closest('tr').classList.contains('hidden')).length;
+      selectedCount.textContent = checkedCount;
+      compareButton.disabled = checkedCount < 2;
+    }
+    
+    function filterAndSort() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const machineValue = machineFilter.value;
+      const materialValue = materialFilter.value;
+      const sortValue = sortSelect.value;
+      
+      let visibleRows = Array.from(rows).filter(row => {
+        const name = row.dataset.name;
+        const machine = row.dataset.machine;
+        const material = row.dataset.material;
+        
+        const matchesSearch = !searchTerm || name.includes(searchTerm);
+        const matchesMachine = !machineValue || machine === machineValue;
+        const matchesMaterial = !materialValue || material === materialValue;
+        
+        const visible = matchesSearch && matchesMachine && matchesMaterial;
+        row.classList.toggle('hidden', !visible);
+        
+        return visible;
+      });
+      
+      // Sort visible rows
+      visibleRows.sort((a, b) => {
+        switch(sortValue) {
+          case 'date-desc':
+            return parseInt(b.dataset.date) - parseInt(a.dataset.date);
+          case 'date-asc':
+            return parseInt(a.dataset.date) - parseInt(b.dataset.date);
+          case 'name-asc':
+            return a.dataset.name.localeCompare(b.dataset.name);
+          case 'name-desc':
+            return b.dataset.name.localeCompare(a.dataset.name);
+          case 'cost-asc':
+            return parseFloat(a.dataset.cost) - parseFloat(b.dataset.cost);
+          case 'cost-desc':
+            return parseFloat(b.dataset.cost) - parseFloat(a.dataset.cost);
+          default:
+            return 0;
+        }
+      });
+      
+      // Reorder rows in DOM
+      visibleRows.forEach(row => tableBody.appendChild(row));
+      
+      // Show/hide no results message
+      if (noResults) {
+        noResults.classList.toggle('hidden', visibleRows.length > 0);
+      }
+      
+      updateCompareButton();
+    }
+    
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', updateCompareButton);
+    });
+    
+    if (selectAll) {
+      selectAll.addEventListener('change', function() {
+        const visibleCheckboxes = Array.from(checkboxes).filter(cb => !cb.closest('tr').classList.contains('hidden'));
+        visibleCheckboxes.forEach(checkbox => {
+          checkbox.checked = selectAll.checked;
+        });
+        updateCompareButton();
+      });
+    }
+    
+    if (searchInput) searchInput.addEventListener('input', filterAndSort);
+    if (machineFilter) machineFilter.addEventListener('change', filterAndSort);
+    if (materialFilter) materialFilter.addEventListener('change', filterAndSort);
+    if (sortSelect) sortSelect.addEventListener('change', filterAndSort);
+    
+    updateCompareButton();
+  });
+</script>

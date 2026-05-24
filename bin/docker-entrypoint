@@ -1,0 +1,12 @@
+#!/bin/bash -e
+
+# Ensure runtime directories exist before Rails starts
+mkdir -p storage tmp log
+chmod -R ug+rwX storage tmp log
+
+# If running the rails server then create or migrate existing database
+if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
+  ./bin/rails db:prepare
+fi
+
+exec "${@}"

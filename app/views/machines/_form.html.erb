@@ -1,0 +1,162 @@
+<%= form_with(model: machine, class: "contents") do |form| %>
+  <% if machine.errors.any? %>
+    <div
+      id="error_explanation"
+      class="bg-red-50 text-red-500 px-3 py-2 font-medium rounded-md mt-3"
+    >
+      <h2><%= pluralize(machine.errors.count, "error") %>
+        prohibited this machine from being saved:</h2>
+
+      <ul class="list-disc ml-6">
+        <% machine.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="my-5">
+    <%= form.label :annual_maintenance_cost %>
+    <%= form.text_field :annual_maintenance_cost,
+                    class: [
+                      "block shadow-sm rounded-md border px-3 py-2 mt-2 w-full",
+                      {
+                        "border-gray-400 focus:outline-blue-600":
+                          machine.errors[:annual_maintenance_cost].none?,
+                        "border-red-400 focus:outline-red-600":
+                          machine.errors[:annual_maintenance_cost].any?,
+                      },
+                    ] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :build_volume_x %>
+    <%= form.text_field :build_volume_x,
+                    class: [
+                      "block shadow-sm rounded-md border px-3 py-2 mt-2 w-full",
+                      {
+                        "border-gray-400 focus:outline-blue-600":
+                          machine.errors[:build_volume_x].none?,
+                        "border-red-400 focus:outline-red-600":
+                          machine.errors[:build_volume_x].any?,
+                      },
+                    ] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :build_volume_y %>
+    <%= form.text_field :build_volume_y,
+                    class: [
+                      "block shadow-sm rounded-md border px-3 py-2 mt-2 w-full",
+                      {
+                        "border-gray-400 focus:outline-blue-600":
+                          machine.errors[:build_volume_y].none?,
+                        "border-red-400 focus:outline-red-600":
+                          machine.errors[:build_volume_y].any?,
+                      },
+                    ] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :build_volume_z %>
+    <%= form.text_field :build_volume_z,
+                    class: [
+                      "block shadow-sm rounded-md border px-3 py-2 mt-2 w-full",
+                      {
+                        "border-gray-400 focus:outline-blue-600":
+                          machine.errors[:build_volume_z].none?,
+                        "border-red-400 focus:outline-red-600":
+                          machine.errors[:build_volume_z].any?,
+                      },
+                    ] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :laser_power %>
+    <%= form.text_field :laser_power,
+                    class: [
+                      "block shadow-sm rounded-md border px-3 py-2 mt-2 w-full",
+                      {
+                        "border-gray-400 focus:outline-blue-600":
+                          machine.errors[:laser_power].none?,
+                        "border-red-400 focus:outline-red-600":
+                          machine.errors[:laser_power].any?,
+                      },
+                    ] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :scan_speed %>
+    <%= form.text_field :scan_speed,
+                    class: [
+                      "block shadow-sm rounded-md border px-3 py-2 mt-2 w-full",
+                      {
+                        "border-gray-400 focus:outline-blue-600":
+                          machine.errors[:laser_power].none?,
+                        "border-red-400 focus:outline-red-600":
+                          machine.errors[:laser_power].any?,
+                      },
+                    ] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :lifespan_years %>
+    <%= form.text_field :lifespan_years,
+                    class: [
+                      "block shadow-sm rounded-md border px-3 py-2 mt-2 w-full",
+                      {
+                        "border-gray-400 focus:outline-blue-600":
+                          machine.errors[:lifespan_years].none?,
+                        "border-red-400 focus:outline-red-600":
+                          machine.errors[:lifespan_years].any?,
+                      },
+                    ] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :model_number %>
+    <%= form.text_field :model_number,
+                    class: [
+                      "block shadow-sm rounded-md border px-3 py-2 mt-2 w-full",
+                      {
+                        "border-gray-400 focus:outline-blue-600":
+                          machine.errors[:model_number].none?,
+                        "border-red-400 focus:outline-red-600":
+                          machine.errors[:model_number].any?,
+                      },
+                    ] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :name %>
+    <%= form.text_field :name,
+                    class: [
+                      "block shadow-sm rounded-md border px-3 py-2 mt-2 w-full",
+                      {
+                        "border-gray-400 focus:outline-blue-600":
+                          machine.errors[:name].none?,
+                        "border-red-400 focus:outline-red-600":
+                          machine.errors[:name].any?,
+                      },
+                    ] %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :purchase_price %>
+    <%= form.text_field :purchase_price,
+                    class: [
+                      "block shadow-sm rounded-md border px-3 py-2 mt-2 w-full",
+                      {
+                        "border-gray-400 focus:outline-blue-600":
+                          machine.errors[:purchase_price].none?,
+                        "border-red-400 focus:outline-red-600":
+                          machine.errors[:purchase_price].any?,
+                      },
+                    ] %>
+  </div>
+
+  <div class="inline">
+    <%= form.submit class:
+                  "w-full sm:w-auto rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
+  </div>
+<% end %>

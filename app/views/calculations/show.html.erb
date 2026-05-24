@@ -1,0 +1,524 @@
+<div class="space-y-8 pb-8">
+  <div class="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-cyan-900 p-6 text-white shadow-xl">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="text-xs uppercase tracking-[0.2em] text-cyan-200">Results Dashboard</p>
+        <h2 class="mt-1 text-2xl font-bold">Financial Performance Analysis</h2>
+        <p class="mt-1 text-sm text-slate-200">Part: <%= @slicing_data.part_name %></p>
+      </div>
+      <%= link_to "← New Analysis",
+      root_path,
+      class:
+        "inline-flex items-center rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20" %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 p-5 text-white shadow-lg">
+      <p class="text-xs uppercase tracking-wide text-rose-100">Cost Per Part</p>
+      <p class="mt-2 text-3xl font-black"><%= @calculator.total_cost_per_part.to_money('usd').format %></p>
+      <p class="mt-2 text-xs text-rose-100">Total Build: <%= @calculator.total_cost_per_build.to_money('usd').format %></p>
+      <p class="text-xs text-rose-100">Total Year: <%= @calculator.total_cost_per_year.to_money('usd').format %></p>
+    </div>
+
+    <div class="rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 p-5 text-white shadow-lg">
+      <p class="text-xs uppercase tracking-wide text-sky-100">Profit Per Part</p>
+      <p class="mt-2 text-3xl font-black">
+        $<%= number_with_precision(@financial_analyzer.profit_per_part, precision: 2) %>
+      </p>
+      <p class="mt-2 text-xs text-sky-100">Margin: <%= number_with_precision(@financial_analyzer.profit_margin_percentage, precision: 1) %>%</p>
+    </div>
+
+    <div class="rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-5 text-white shadow-lg">
+      <p class="text-xs uppercase tracking-wide text-emerald-100">Annual Profit</p>
+      <p class="mt-2 text-3xl font-black">$<%= number_to_human(@financial_analyzer.annual_profit, precision: 2) %></p>
+      <p class="mt-2 text-xs text-emerald-100">Revenue: $<%= number_to_human(@financial_analyzer.annual_revenue, precision: 2) %></p>
+      <p class="text-xs text-emerald-100">Costs: $<%= number_to_human(@financial_analyzer.annual_costs, precision: 2) %></p>
+    </div>
+
+    <div class="rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-600 p-5 text-white shadow-lg">
+      <p class="text-xs uppercase tracking-wide text-violet-100">Decision</p>
+      <p class="mt-2 text-3xl font-black"><%= @financial_analyzer.viability_score %>/100</p>
+      <p class="mt-2 text-xs text-violet-100"><%= @financial_analyzer.viability_rating %></p>
+      <p class="text-xs text-violet-100">Build Time: <%= number_with_precision(@slicing_data.build_time_hours, precision: 2) %> h</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 gap-6 xl:grid-cols-12">
+    <div class="space-y-6 xl:col-span-7">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="mb-4 text-lg font-semibold text-slate-900">Projected Cash Flows</h3>
+
+        <% flows = @financial_analyzer.cash_flows %>
+        <% max_abs = flows.map { |f| f[:cumulative_cash_flow].to_f.abs }.max %>
+        <% max_abs = 1.0 if max_abs.to_f.zero? %>
+
+        <div class="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-cyan-50 p-4">
+          <p class="mb-2 text-xs uppercase tracking-[0.18em] text-slate-500">Cumulative Cash Trajectory Diagram</p>
+          <div class="overflow-x-auto">
+            <svg class="min-w-[720px]" width="100%" height="220" viewBox="0 0 820 220" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Projected cumulative cash flow diagram">
+              <line x1="40" y1="110" x2="780" y2="110" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 5" />
+              <% points = [] %>
+              <% flows.each_with_index do |flow, idx| %>
+                <% x = 60 + (idx * (700.0 / [flows.length - 1, 1].max)) %>
+                <% y = 110 - ((flow[:cumulative_cash_flow].to_f / max_abs) * 78.0) %>
+                <% points << "#{x.round(2)},#{y.round(2)}" %>
+              <% end %>
+
+              <polyline points="<%= points.join(' ') %>" fill="none" stroke="#0f766e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+
+              <% flows.each_with_index do |flow, idx| %>
+                <% x = 60 + (idx * (700.0 / [flows.length - 1, 1].max)) %>
+                <% y = 110 - ((flow[:cumulative_cash_flow].to_f / max_abs) * 78.0) %>
+                <% positive = flow[:cumulative_cash_flow].to_f >= 0 %>
+                <circle cx="<%= x.round(2) %>" cy="<%= y.round(2) %>" r="6" fill="<%= positive ? '#16a34a' : '#e11d48' %>" />
+                <text x="<%= x.round(2) %>" y="198" text-anchor="middle" font-size="11" fill="#334155" font-weight="600">
+                  <%= flow[:year] == 0 ? 'Initial' : "Y#{flow[:year]}" %>
+                </text>
+                <text x="<%= x.round(2) %>" y="<%= (y - 12).round(2) %>" text-anchor="middle" font-size="10" fill="#0f172a">
+                  <%= number_to_human(flow[:cumulative_cash_flow], precision: 2) %>
+                </text>
+              <% end %>
+            </svg>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+          <% flows.each do |flow| %>
+            <div class="rounded-xl border px-4 py-3 <%= flow[:net_cash_flow].to_f >= 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50' %>">
+              <div class="mb-1 flex items-center justify-between">
+                <p class="text-sm font-semibold text-slate-800"><%= flow[:year] == 0 ? 'Initial Stage' : "Year #{flow[:year]}" %></p>
+                <span class="text-xs font-semibold <%= flow[:net_cash_flow].to_f >= 0 ? 'text-emerald-700' : 'text-rose-700' %>">
+                  <%= flow[:net_cash_flow].to_f >= 0 ? 'Positive' : 'Negative' %>
+                </span>
+              </div>
+              <p class="text-xs text-slate-600">Revenue: $<%= number_to_human(flow[:revenue], precision: 2) %></p>
+              <p class="text-xs text-slate-600">Costs: $<%= number_to_human(flow[:costs], precision: 2) %></p>
+              <p class="mt-1 text-xs font-semibold <%= flow[:net_cash_flow].to_f >= 0 ? 'text-emerald-700' : 'text-rose-700' %>">
+                Net: <%= flow[:net_cash_flow].to_f >= 0 ? '+' : '' %>$<%= number_to_human(flow[:net_cash_flow], precision: 2) %>
+              </p>
+              <p class="text-xs font-semibold <%= flow[:cumulative_cash_flow].to_f >= 0 ? 'text-emerald-700' : 'text-rose-700' %>">
+                Cumulative: <%= flow[:cumulative_cash_flow].to_f >= 0 ? '+' : '' %>$<%= number_to_human(flow[:cumulative_cash_flow], precision: 2) %>
+              </p>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="mt-4 rounded-xl bg-slate-50 p-4">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <p class="text-sm font-medium text-slate-700">Investment Decision</p>
+              <p class="mt-1 text-xs text-slate-500">Based on NPV, ROI, and Payback Period analysis</p>
+            </div>
+            <% if @financial_analyzer.investment_viable? %>
+              <span class="rounded-lg bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-800">Viable Investment</span>
+            <% else %>
+              <span class="rounded-lg bg-rose-100 px-4 py-2 text-sm font-semibold text-rose-800">Not Viable</span>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-6 xl:col-span-5">
+      <div class="rounded-2xl border border-cyan-200 bg-cyan-50 p-6 shadow-sm">
+        <h3 class="mb-4 text-lg font-semibold text-slate-900">Revenue & Profitability</h3>
+        <dl class="space-y-3">
+          <div class="flex justify-between border-b border-cyan-100 py-2">
+            <dt class="text-sm text-slate-600">Price per Part</dt>
+            <dd class="text-sm font-semibold text-slate-900">R <%= number_with_precision(@financial_analyzer.revenue_per_part, precision: 2) %></dd>
+          </div>
+          <div class="flex justify-between border-b border-cyan-100 py-2">
+            <dt class="text-sm text-slate-600">Cost per Part</dt>
+            <dd class="text-sm font-semibold text-slate-900">R <%= number_with_precision(@calculator.total_cost_per_part, precision: 2) %></dd>
+          </div>
+          <div class="flex justify-between border-b border-cyan-100 py-2">
+            <dt class="text-sm text-slate-600">Profit per Part</dt>
+            <dd class="text-sm font-semibold <%= @financial_analyzer.profit_per_part > 0 ? 'text-emerald-600' : 'text-rose-600' %>">
+              R <%= number_with_precision(@financial_analyzer.profit_per_part, precision: 2) %>
+            </dd>
+          </div>
+          <div class="flex justify-between border-b border-cyan-100 py-2">
+            <dt class="text-sm text-slate-600">Profit Margin</dt>
+            <dd class="text-sm font-semibold <%= @financial_analyzer.profit_margin_percentage > 0 ? 'text-emerald-600' : 'text-rose-600' %>">
+              <%= number_with_precision(@financial_analyzer.profit_margin_percentage, precision: 1) %>%
+            </dd>
+          </div>
+          <div class="flex justify-between rounded-lg bg-cyan-100 px-3 py-2">
+            <dt class="text-sm font-bold text-slate-900">Revenue per Build</dt>
+            <dd class="text-sm font-bold text-cyan-800">R <%= number_with_precision(@financial_analyzer.revenue_per_build, precision: 2) %></dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="rounded-2xl border border-violet-200 bg-violet-50 p-6 shadow-sm">
+        <h3 class="mb-4 text-lg font-semibold text-slate-900">Annual Projections</h3>
+        <dl class="space-y-3">
+          <div class="flex justify-between border-b border-violet-100 py-2">
+            <dt class="text-sm text-slate-600">Total Parts Produced (Yearly)</dt>
+            <dd class="text-sm font-semibold text-slate-900"><%= @financial_analyzer.annual_parts_produced %></dd>
+          </div>
+          <div class="flex justify-between border-b border-violet-100 py-2">
+            <dt class="text-sm text-slate-600">Annual Revenue</dt>
+            <dd class="text-sm font-semibold text-slate-900">$<%= number_to_human(@financial_analyzer.annual_revenue, precision: 2) %></dd>
+          </div>
+          <div class="flex justify-between border-b border-violet-100 py-2">
+            <dt class="text-sm text-slate-600">Annual Costs</dt>
+            <dd class="text-sm font-semibold text-slate-900">$<%= number_to_human(@financial_analyzer.annual_costs, precision: 2) %></dd>
+          </div>
+          <div class="flex justify-between rounded-lg bg-violet-100 px-3 py-2">
+            <dt class="text-sm font-bold text-slate-900">Annual Profit</dt>
+            <dd class="text-sm font-bold <%= @financial_analyzer.annual_profit > 0 ? 'text-violet-700' : 'text-rose-600' %>">$<%= number_to_human(@financial_analyzer.annual_profit, precision: 2) %></dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+        <h3 class="mb-4 text-lg font-semibold text-slate-900">Break-Even Analysis</h3>
+
+        <% break_even = @financial_analyzer.break_even_analyzer %>
+        <% min_break_even_revenue = break_even.break_even_revenue_minimum %>
+        <% max_break_even_revenue = break_even.break_even_revenue_maximum %>
+        <% median_break_even_revenue = break_even.break_even_revenue_median %>
+        <% break_even_parts = @financial_analyzer.break_even_parts_per_year %>
+        <% break_even_possible = @financial_analyzer.profit_per_part > 0 %>
+
+        <dl class="space-y-3">
+          <div class="flex justify-between border-b border-amber-100 py-2">
+            <dt class="text-sm text-slate-600">Minimum Break Even</dt>
+            <dd class="text-sm font-semibold text-slate-900">
+              <% if min_break_even_revenue %>
+                <%= min_break_even_revenue.to_money('usd').format %>
+              <% else %>
+                <span class="text-amber-700">Not achievable at current price</span>
+              <% end %>
+            </dd>
+          </div>
+
+          <div class="flex justify-between border-b border-amber-100 py-2">
+            <dt class="text-sm text-slate-600">Maximum Break Even</dt>
+            <dd class="text-sm font-semibold text-slate-900">
+              <% if max_break_even_revenue %>
+                <%= max_break_even_revenue.to_money('usd').format %>
+              <% else %>
+                <span class="text-amber-700">Not achievable at current price</span>
+              <% end %>
+            </dd>
+          </div>
+
+          <div class="flex justify-between border-b border-amber-100 py-2">
+            <dt class="text-sm text-slate-600">Median Break Even</dt>
+            <dd class="text-sm font-semibold text-slate-900">
+              <% if median_break_even_revenue %>
+                <%= median_break_even_revenue.to_money('usd').format %>
+              <% else %>
+                <span class="text-amber-700">Not achievable at current price</span>
+              <% end %>
+            </dd>
+          </div>
+
+          <div class="flex justify-between border-b border-amber-100 py-2">
+            <dt class="text-sm text-slate-600">Break-Even Parts/Year</dt>
+            <dd class="text-sm font-semibold text-slate-900">
+              <% if break_even_parts %>
+                <%= number_with_delimiter(break_even_parts) %>
+              <% else %>
+                <span class="text-amber-700">Not achievable at current price</span>
+              <% end %>
+            </dd>
+          </div>
+
+          <div class="flex justify-between border-b border-amber-100 py-2">
+            <dt class="text-sm text-slate-600">Break-Even Price</dt>
+            <dd class="text-sm font-semibold text-slate-900">$<%= number_with_precision(@financial_analyzer.break_even_price_per_part, precision: 2) %></dd>
+          </div>
+
+          <div class="flex justify-between border-b border-amber-100 py-2">
+            <dt class="text-sm text-slate-600">Current Price</dt>
+            <dd class="text-sm font-semibold text-slate-900">$<%= number_with_precision(@params.price_per_part, precision: 2) %></dd>
+          </div>
+
+          <div class="flex justify-between rounded-lg bg-amber-100 px-3 py-2">
+            <dt class="text-sm font-bold text-slate-900">Price Margin</dt>
+            <dd class="text-sm font-bold <%= @financial_analyzer.profit_per_part > 0 ? 'text-emerald-700' : 'text-rose-700' %>">
+              <%= @financial_analyzer.profit_per_part > 0 ? '+' : '' %><%= number_to_percentage(((@params.price_per_part - @financial_analyzer.break_even_price_per_part) / @financial_analyzer.break_even_price_per_part) * 100, precision: 1) %>
+            </dd>
+          </div>
+
+          <% unless break_even_possible %>
+            <div class="rounded-lg border border-amber-300 bg-amber-100 p-3">
+              <p class="text-sm text-amber-900">Break-even is currently not achievable because the current selling price is below the break-even price.</p>
+            </div>
+          <% end %>
+        </dl>
+      </div>
+
+      <div class="rounded-2xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
+        <h3 class="mb-4 text-lg font-semibold text-slate-900">Sensitivity Analysis</h3>
+        <dl class="space-y-3">
+          <div class="rounded-lg bg-sky-100 p-3">
+            <dt class="mb-1 text-xs text-slate-600">Price Sensitivity</dt>
+            <dd class="text-lg font-semibold text-sky-700"><%= number_with_precision(@financial_analyzer.price_sensitivity, precision: 1) %>%</dd>
+            <p class="mt-1 text-xs text-slate-500">Profit change with 10% price increase</p>
+          </div>
+
+          <div class="rounded-lg bg-rose-100 p-3">
+            <dt class="mb-1 text-xs text-slate-600">Cost Sensitivity</dt>
+            <dd class="text-lg font-semibold text-rose-700"><%= number_with_precision(@financial_analyzer.cost_sensitivity, precision: 1) %>%</dd>
+            <p class="mt-1 text-xs text-slate-500">Profit change with 10% cost increase</p>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-lg">
+    <div class="mb-4 flex items-center justify-between">
+      <h3 class="text-xl font-bold">Monte Carlo Risk Analysis</h3>
+      <div class="rounded bg-white/10 px-3 py-1 text-sm"><%= number_with_delimiter(@monte_carlo.iterations) %> iterations</div>
+    </div>
+
+    <p class="mb-6 text-sm text-slate-300">
+      Probabilistic analysis accounting for cost volatility (<%= number_to_percentage(@params.cost_volatility * 100, precision: 1) %>)
+      and revenue volatility (<%= number_to_percentage(@params.revenue_volatility * 100, precision: 1) %>)
+    </p>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div class="rounded-xl bg-white/10 p-4">
+        <p class="text-xs text-slate-300">Cost per Part (Mean)</p>
+        <p class="mt-1 text-3xl font-bold">$<%= number_with_precision(@monte_carlo.cost_per_part_mean, precision: 2) %></p>
+        <p class="mt-2 text-xs text-slate-400">± $<%= number_with_precision(@monte_carlo.cost_per_part_std, precision: 2) %></p>
+      </div>
+
+      <div class="rounded-xl bg-white/10 p-4">
+        <p class="text-xs text-slate-300">NPV (Mean)</p>
+        <p class="mt-1 text-3xl font-bold">$<%= number_to_human(@monte_carlo.npv_mean, precision: 2) %></p>
+        <p class="mt-2 text-xs text-slate-400"><%= number_with_precision(@monte_carlo.npv_positive_probability, precision: 1) %>% positive</p>
+      </div>
+
+      <div class="rounded-xl bg-white/10 p-4">
+        <p class="text-xs text-slate-300">IRR (Mean)</p>
+        <p class="mt-1 text-3xl font-bold"><%= @monte_carlo.irr_mean ? "#{number_with_precision(@monte_carlo.irr_mean, precision: 1)}%" : "N/A" %></p>
+        <p class="mt-2 text-xs text-slate-400"><%= @monte_carlo.irr_mean ? "± #{number_with_precision(@monte_carlo.irr_std, precision: 1)}%" : "-" %></p>
+      </div>
+
+      <div class="rounded-xl bg-white/10 p-4">
+        <p class="text-xs text-slate-300">ROI (Mean)</p>
+        <p class="mt-1 text-3xl font-bold"><%= number_with_precision(@monte_carlo.roi_mean, precision: 1) %>%</p>
+        <p class="mt-2 text-xs text-slate-400">± <%= number_with_precision(@monte_carlo.roi_std, precision: 1) %>%</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+      <div>
+        <h3 class="text-lg font-semibold text-slate-900">Simulation Summary Statistics</h3>
+        <p class="text-sm text-slate-500">Rearranged as insight cards and percentile matrix for faster reading.</p>
+      </div>
+      <span class="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Monte Carlo Lens</span>
+    </div>
+
+    <% stats = @monte_carlo.summary_statistics %>
+
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-12">
+      <div class="rounded-xl border border-sky-200 bg-sky-50 p-4 xl:col-span-4">
+        <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">Interpretation</p>
+        <p class="mt-2 text-sm text-sky-900">
+          The 50th percentile (median) is the most likely outcome for each metric.
+          The 5th to 95th percentile span captures the central 90% of possible scenarios.
+        </p>
+        <div class="mt-3 grid grid-cols-3 gap-2 text-xs">
+          <div class="rounded-lg bg-white px-3 py-2 text-center text-slate-700">
+            <p class="font-semibold">P5</p>
+            <p>Downside</p>
+          </div>
+          <div class="rounded-lg bg-white px-3 py-2 text-center text-slate-700">
+            <p class="font-semibold">P50</p>
+            <p>Baseline</p>
+          </div>
+          <div class="rounded-lg bg-white px-3 py-2 text-center text-slate-700">
+            <p class="font-semibold">P95</p>
+            <p>Upside</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:col-span-8">
+        <div class="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-cyan-700">Cost per Part (USD)</p>
+          <p class="mt-2 text-2xl font-bold text-slate-900">$<%= number_with_precision(stats[:cost_per_part][:p50], precision: 2) %></p>
+          <p class="mt-1 text-xs text-slate-600">Mean: $<%= number_with_precision(stats[:cost_per_part][:mean], precision: 2) %></p>
+          <p class="text-xs text-slate-600">90% band: $<%= number_with_precision(stats[:cost_per_part][:p5], precision: 2) %> to $<%= number_with_precision(stats[:cost_per_part][:p95], precision: 2) %></p>
+        </div>
+
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">NPV (USD)</p>
+          <p class="mt-2 text-2xl font-bold text-slate-900"><%= number_to_human(stats[:npv][:p50], precision: 2) %></p>
+          <p class="mt-1 text-xs text-slate-600">Mean: <%= number_to_human(stats[:npv][:mean], precision: 2) %></p>
+          <p class="text-xs text-slate-600">90% band: <%= number_to_human(stats[:npv][:p5], precision: 2) %> to <%= number_to_human(stats[:npv][:p95], precision: 2) %></p>
+        </div>
+
+        <% if stats[:irr][:mean] %>
+          <div class="rounded-xl border border-violet-200 bg-violet-50 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-violet-700">IRR (%)</p>
+            <p class="mt-2 text-2xl font-bold text-slate-900"><%= number_with_precision(stats[:irr][:p50], precision: 1) %>%</p>
+            <p class="mt-1 text-xs text-slate-600">Mean: <%= number_with_precision(stats[:irr][:mean], precision: 1) %>%</p>
+            <p class="text-xs text-slate-600">90% band: <%= number_with_precision(stats[:irr][:p5], precision: 1) %>% to <%= number_with_precision(stats[:irr][:p95], precision: 1) %>%</p>
+          </div>
+        <% end %>
+
+        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">ROI (%)</p>
+          <p class="mt-2 text-2xl font-bold text-slate-900"><%= number_with_precision(stats[:roi][:p50], precision: 1) %>%</p>
+          <p class="mt-1 text-xs text-slate-600">Mean: <%= number_with_precision(stats[:roi][:mean], precision: 1) %>%</p>
+          <p class="text-xs text-slate-600">90% band: <%= number_with_precision(stats[:roi][:p5], precision: 1) %>% to <%= number_with_precision(stats[:roi][:p95], precision: 1) %>%</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-5 overflow-x-auto rounded-xl border border-slate-200">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-100">
+          <tr>
+            <th class="px-3 py-2 text-left font-semibold text-slate-900">Metric</th>
+            <th class="px-3 py-2 text-right font-semibold text-slate-900">P5</th>
+            <th class="px-3 py-2 text-right font-semibold text-slate-900">P50</th>
+            <th class="px-3 py-2 text-right font-semibold text-slate-900">P95</th>
+            <th class="px-3 py-2 text-right font-semibold text-slate-900">Std Dev</th>
+            <th class="px-3 py-2 text-right font-semibold text-slate-900">Min</th>
+            <th class="px-3 py-2 text-right font-semibold text-slate-900">Max</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-t border-slate-200 bg-cyan-50">
+            <td class="px-3 py-2 font-medium">Cost per Part (USD)</td>
+            <td class="px-3 py-2 text-right"><%= number_with_precision(stats[:cost_per_part][:p5], precision: 2) %></td>
+            <td class="px-3 py-2 text-right font-semibold"><%= number_with_precision(stats[:cost_per_part][:p50], precision: 2) %></td>
+            <td class="px-3 py-2 text-right"><%= number_with_precision(stats[:cost_per_part][:p95], precision: 2) %></td>
+            <td class="px-3 py-2 text-right"><%= number_with_precision(stats[:cost_per_part][:std], precision: 2) %></td>
+            <td class="px-3 py-2 text-right text-slate-500"><%= number_with_precision(stats[:cost_per_part][:min], precision: 2) %></td>
+            <td class="px-3 py-2 text-right text-slate-500"><%= number_with_precision(stats[:cost_per_part][:max], precision: 2) %></td>
+          </tr>
+          <tr class="border-t border-slate-200 bg-emerald-50">
+            <td class="px-3 py-2 font-medium">NPV (USD)</td>
+            <td class="px-3 py-2 text-right"><%= number_to_human(stats[:npv][:p5], precision: 2) %></td>
+            <td class="px-3 py-2 text-right font-semibold"><%= number_to_human(stats[:npv][:p50], precision: 2) %></td>
+            <td class="px-3 py-2 text-right"><%= number_to_human(stats[:npv][:p95], precision: 2) %></td>
+            <td class="px-3 py-2 text-right"><%= number_to_human(stats[:npv][:std], precision: 2) %></td>
+            <td class="px-3 py-2 text-right text-slate-500"><%= number_to_human(stats[:npv][:min], precision: 2) %></td>
+            <td class="px-3 py-2 text-right text-slate-500"><%= number_to_human(stats[:npv][:max], precision: 2) %></td>
+          </tr>
+          <% if stats[:irr][:mean] %>
+            <tr class="border-t border-slate-200 bg-violet-50">
+              <td class="px-3 py-2 font-medium">IRR (%)</td>
+              <td class="px-3 py-2 text-right"><%= number_with_precision(stats[:irr][:p5], precision: 1) %></td>
+              <td class="px-3 py-2 text-right font-semibold"><%= number_with_precision(stats[:irr][:p50], precision: 1) %></td>
+              <td class="px-3 py-2 text-right"><%= number_with_precision(stats[:irr][:p95], precision: 1) %></td>
+              <td class="px-3 py-2 text-right"><%= number_with_precision(stats[:irr][:std], precision: 1) %></td>
+              <td class="px-3 py-2 text-right text-slate-500"><%= number_with_precision(stats[:irr][:min], precision: 1) %></td>
+              <td class="px-3 py-2 text-right text-slate-500"><%= number_with_precision(stats[:irr][:max], precision: 1) %></td>
+            </tr>
+          <% end %>
+          <tr class="border-t border-slate-200 bg-amber-50">
+            <td class="px-3 py-2 font-medium">ROI (%)</td>
+            <td class="px-3 py-2 text-right"><%= number_with_precision(stats[:roi][:p5], precision: 1) %></td>
+            <td class="px-3 py-2 text-right font-semibold"><%= number_with_precision(stats[:roi][:p50], precision: 1) %></td>
+            <td class="px-3 py-2 text-right"><%= number_with_precision(stats[:roi][:p95], precision: 1) %></td>
+            <td class="px-3 py-2 text-right"><%= number_with_precision(stats[:roi][:std], precision: 1) %></td>
+            <td class="px-3 py-2 text-right text-slate-500"><%= number_with_precision(stats[:roi][:min], precision: 1) %></td>
+            <td class="px-3 py-2 text-right text-slate-500"><%= number_with_precision(stats[:roi][:max], precision: 1) %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-xl font-bold text-slate-900">Risk Distribution Gallery</h3>
+      <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Asymmetric View</span>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-12">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-7">
+        <h3 class="mb-4 text-lg font-semibold text-slate-900">Cost per Part Distribution</h3>
+        <div id="cost-histogram" class="h-72"></div>
+        <div class="mt-4 text-sm text-slate-600">
+          <p><strong>Mean:</strong> $<%= number_with_precision(@monte_carlo.cost_per_part_mean, precision: 2) %></p>
+          <p><strong>Range:</strong> $<%= number_with_precision(@monte_carlo.cost_per_part_min, precision: 2) %> - $<%= number_with_precision(@monte_carlo.cost_per_part_max, precision: 2) %></p>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-5">
+        <h3 class="mb-4 text-lg font-semibold text-slate-900">Net Present Value Distribution</h3>
+        <div id="npv-histogram" class="h-72"></div>
+        <div class="mt-4 text-sm text-slate-600">
+          <p><strong>Probability of Positive NPV:</strong> <%= number_with_precision(@monte_carlo.npv_positive_probability, precision: 1) %>%</p>
+          <p><strong>Range:</strong> $<%= number_to_human(@monte_carlo.npv_min, precision: 2) %> - $<%= number_to_human(@monte_carlo.npv_max, precision: 2) %></p>
+        </div>
+      </div>
+
+      <% if @monte_carlo.irr_mean %>
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-5">
+          <h3 class="mb-4 text-lg font-semibold text-slate-900">Internal Rate of Return Distribution</h3>
+          <div id="irr-histogram" class="h-72"></div>
+          <div class="mt-4 text-sm text-slate-600">
+            <p><strong>Mean:</strong> <%= number_with_precision(@monte_carlo.irr_mean, precision: 1) %>%</p>
+            <p><strong>vs Discount Rate:</strong> <%= number_with_precision(@params.discount_rate * 100, precision: 1) %>%</p>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm <%= @monte_carlo.irr_mean ? 'xl:col-span-7' : 'xl:col-span-12' %>">
+        <h3 class="mb-4 text-lg font-semibold text-slate-900">Return on Investment Distribution</h3>
+        <div id="roi-histogram" class="h-72"></div>
+        <div class="mt-4 text-sm text-slate-600">
+          <p><strong>Mean:</strong> <%= number_with_precision(@monte_carlo.roi_mean, precision: 1) %>%</p>
+          <p><strong>Range:</strong> <%= number_with_precision(@monte_carlo.roi_min, precision: 1) %>% - <%= number_with_precision(@monte_carlo.roi_max, precision: 1) %>%</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const costHistogram = <%= raw @monte_carlo.cost_per_part_histogram(bins: 50).to_json %>;
+    const npvHistogram = <%= raw @monte_carlo.npv_histogram(bins: 50).to_json %>;
+    <% if @monte_carlo.irr_mean %>
+      const irrHistogram = <%= raw @monte_carlo.irr_histogram(bins: 50).to_json %>;
+    <% end %>
+    const roiHistogram = <%= raw @monte_carlo.roi_histogram(bins: 50).to_json %>;
+
+    function renderHistogram(containerId, data, colorClass) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const maxFreq = Math.max(...data.frequencies);
+      let html = '<div class="flex h-full items-end justify-between gap-0.5">';
+
+      data.frequencies.forEach((freq, i) => {
+        const height = (freq / maxFreq) * 100;
+        html += `<div class="flex-1 ${colorClass} rounded-t" style="height: ${height}%;" title="${Math.round(data.bin_centers[i])}: ${freq}"></div>`;
+      });
+
+      html += "</div>";
+      container.innerHTML = html;
+    }
+
+    document.addEventListener("turbo:load", function() {
+      renderHistogram("cost-histogram", costHistogram, "bg-sky-500");
+      renderHistogram("npv-histogram", npvHistogram, "bg-emerald-500");
+      <% if @monte_carlo.irr_mean %>
+        renderHistogram("irr-histogram", irrHistogram, "bg-violet-500");
+      <% end %>
+      renderHistogram("roi-histogram", roiHistogram, "bg-amber-500");
+    });
+  </script>
+
+  <div class="flex gap-3">
+    <%= link_to "← New Analysis",
+    root_path,
+    class:
+      "rounded-xl bg-slate-100 px-6 py-3 text-slate-700 transition hover:bg-slate-200" %>
+  </div>
+</div>

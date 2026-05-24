@@ -1,0 +1,60 @@
+# Omakase Ruby styling for Rails
+inherit_gem: { rubocop-rails-omakase: rubocop.yml }
+
+# Overwrite or add rules to create your own house style
+#
+# # Use `[a, [b, c]]` not `[ a, [ b, c ] ]`
+# Layout/SpaceInsideArrayLiteralBrackets:
+#   Enabled: false
+AllCops:
+  NewCops: enable
+Style:
+  Enabled: true
+Layout:
+  Enabled: true
+
+Style/EmptyMethod:
+  EnforcedStyle: expanded
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+Layout/IndentationConsistency:
+  Enabled: true
+  EnforcedStyle: normal
+
+Layout/IndentationWidth:
+  Enabled: true
+
+Layout/SpaceAfterColon:
+  Description: "Use spaces after colons."
+  StyleGuide: "#spaces-operators"
+  Enabled: true
+
+Layout/SpaceAfterComma:
+  Description: "Use spaces after commas."
+  StyleGuide: "#spaces-operators"
+  Enabled: true
+
+Layout/SpaceAfterMethodName:
+  Description: >-
+    Do not put a space between a method name and the opening
+    parenthesis in a method definition.
+  StyleGuide: "#parens-no-spaces"
+  Enabled: true
+
+Layout/InitialIndentation:
+  Description: >-
+    Checks the indentation of the first non-blank non-comment line in a file.
+  Enabled: true
+
+Layout/CaseIndentation:
+  Description: "Indentation of when in a case/when/[else/]end."
+  StyleGuide: "#indent-when-to-case"
+  Enabled: true

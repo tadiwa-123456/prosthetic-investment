@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-Process \"Docker Desktop\" -ErrorAction SilentlyContinue)",
+      "PowerShell($dockerPath = \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\"; if \\(Test-Path $dockerPath\\) { Write-Output \"Found: $dockerPath\" } else { Get-ChildItem \"C:\\\\Program Files\\\\\" -Filter \"Docker\" -ErrorAction SilentlyContinue })",
+      "PowerShell(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")"
+    ]
+  }
+}
